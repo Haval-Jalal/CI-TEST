@@ -28,10 +28,7 @@ jobs:
 
       - name: Sätt upp .NET
         uses: actions/setup-dotnet@v6
-        with:
-          # Ingen version här: global.json i repo-roten bestämmer, så CI och
-          # utvecklarmaskinen bygger med samma SDK.
-          global-json-file: global.json
+        
 
       - name: Cacha NuGet-paket
         uses: actions/cache@v6
