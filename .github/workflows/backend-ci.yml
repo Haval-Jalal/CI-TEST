@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# En ny push till samma branch avbryter en pågående körning — vi behöver inte
+# resultatet från kod som redan är ersatt.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Sätt upp .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          # Ingen version här: global.json i repo-roten bestämmer, så CI och
+          # utvecklarmaskinen bygger med samma SDK.
+          global-json-file: global.json
+
+      - name: Cacha NuGet-paket
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('backend/**/*.csproj', 'backend/**/Directory.Build.props') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Återställ paket
+        run: dotnet restore
+
+      - name: Kontrollera formatering
+        run: dotnet format --verify-no-changes --no-restore
+
+      - name: Bygg
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Kör tester
+        run: dotnet test --no-build --configuration Release --logger "console;verbosity=normal"
